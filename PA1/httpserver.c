@@ -1,3 +1,4 @@
+#include "httpserver.h"
 #include<netinet/in.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -168,7 +169,4 @@ void initializeServer(int port){
 	close(create_socket);
 }
 
-int main(){
-	initializeServer(8097);
-	return 0;
-}
+
