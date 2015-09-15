@@ -1,4 +1,4 @@
-#include "httpserver.h"
+//#include "httpserver.h"
 #include<netinet/in.h>
 #include<stdio.h>
 #include<string.h>
@@ -13,21 +13,17 @@
 #include<fcntl.h>
 
 #define MAX_CONNECTIONS 1000
+#define MAX_SUPPORTED_TYPES 250
+#define BUFFER_SIZE 1024
+#define MAX_RETRIES 100
 
-int BUFFER_SIZE = 1024;
-int MAX_RETRIES = 100;
 int clients[MAX_CONNECTIONS];
+char *supported_types[MAX_SUPPORTED_TYPES];
+char *PORT;
 
-struct arg_struct {
-    int arg1;
-    char *arg2;
-};
-
-const char *get_filename_ext(const char *filename) {
-	printf("In getFilenameExt\n");
-    const char *dot = strrchr(filename, '.');
+char *get_filename_ext(char *filename) {
+    char *dot = strrchr(filename, '.');
     if(!dot || dot == filename) return "";
-    printf("donezo\n");
     return dot + 1;
 }
 
@@ -89,8 +85,6 @@ void respond(int n)
     clients[n]=-1;
 }
 
-
-//void initializeServer(int port){
 void initializeServer(char *port){
 
 	int create_socket, new_socket;
@@ -150,4 +144,59 @@ void initializeServer(char *port){
 	}
 }
 
+void configureServer(char *path){
+	int fd, bytes_read;
+	char *data_to_send;
+	char *file_type;
+	data_to_send = malloc(BUFFER_SIZE);
 
+	int i = 0;
+	for(i; i<MAX_SUPPORTED_TYPES; i++){
+		supported_types[i] = "";
+	}
+
+	int n = 0;
+	if((fd=open(path, O_RDONLY))!=-1){
+		 while((bytes_read=read(fd, data_to_send, BUFFER_SIZE))>0){
+		 	char *token = strtok(data_to_send, " \t\n");
+		 	while(token != NULL){
+		 		if(strcmp(token, "Listen") == 0){
+		 			token = strtok(NULL, " \t\n");
+		 			PORT = token;
+		 		}
+		 		else if(token[0] == '.'){
+		 			char new_token[strlen(token)];
+		 			char extension[strlen(token) - 1];
+		 			strcpy(new_token, token);
+		 			int i = 1;
+		 			int j = 0;
+		 			for(i;i<strlen(token);i++){
+		 				extension[j] = new_token[i];
+		 				j++;
+		 			}
+		 			file_type = extension;
+		 			supported_types[n] = file_type;
+		 			n++;
+		 		}
+		 		token = strtok(NULL, " \t\n");
+		 	}
+		 }
+	}
+	else{
+		printf("Configuration file not found\n");
+		exit(1);
+	}
+
+}
+
+int main(int argc, char* argv[]){
+	if(argc > 1){
+		char *conf_file = argv[1];
+		configureServer(conf_file);
+		initializeServer(PORT);
+		return 0;	
+	}
+	else{
+		printf("usage: ./main <CONFIGURATION_FILE>\n");
+	}
+}

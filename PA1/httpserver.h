@@ -8,6 +8,6 @@ void *sendJPG(void *arguments);
 void *sendCSS(void *arguments);
 void *sendText(void *arguments);
 void *sendJavaScript(void *arguments);
-const char *get_filename_ext(const char *filename);
+const char *get_filename_ext(char *filename);
 void parseHTTPrequest(char *request, int socket);
 void respond(int n);
