@@ -254,9 +254,7 @@ void *sendCSS(void *arguments){
 		write(socket, "HTTP/1.1 404 Not Found\n", 40);
 		write(socket, "Connection: keep-alive\n\n", 24);
 		write(socket, "<html><body><H1>404 Error: Page not found</H1></body></html>", 60);
-		//close(socket);
 	}
-
 }
 
 void sendHTMLPage(int socket, char *filename){
@@ -292,7 +290,6 @@ void sendHTMLPage(int socket, char *filename){
 
 			fclose(f);
 			
-			close(socket);	
 			free(buffer);			
 		}
 	}
@@ -305,9 +302,9 @@ void sendHTMLPage(int socket, char *filename){
 		write(socket, "HTTP/1.1 404 Not Found\n", 40);
 		write(socket, "Connection: keep-alive\n\n", 24);
 		write(socket, "<html><body><H1>404 Error: Page not found</H1></body></html>", 60);
-		//close(socket);
+		close(socket);	
 	}
-
+	
 }
 
 void parseHTTPrequest(char *request, int socket){
