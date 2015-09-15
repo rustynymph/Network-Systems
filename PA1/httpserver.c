@@ -1,16 +1,32 @@
 #include "httpserver.h"
 #include<netinet/in.h>
+// #include<stdio.h>
+// #include<stdlib.h>
+// #include<sys/socket.h>
+// #include<sys/stat.h>
+// #include<sys/types.h>
+// #include<unistd.h>
+// #include<string.h>
+// #include<pthread.h>
+
 #include<stdio.h>
-#include<stdlib.h>
-#include<sys/socket.h>
-#include<sys/stat.h>
-#include<sys/types.h>
-#include<unistd.h>
 #include<string.h>
-#include<pthread.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<sys/socket.h>
+#include<arpa/inet.h>
+#include<netdb.h>
+#include<signal.h>
+#include<fcntl.h>
+
+#define MAX_CONNECTIONS 1000
 
 int BUFFER_SIZE = 4096;
 int MAX_RETRIES = 100;
+char *ROOT;
+int clients[MAX_CONNECTIONS];
 
 struct arg_struct {
     int arg1;
@@ -386,25 +402,89 @@ void handleGETRequest(char *filename, int socket){
 	}
 }
 
-void *listenForRequests(void *socket){
+//void *listenForRequests(void *socket){
+void *listenForRequests(int socket){
 	char *buffer;
 	buffer = malloc(BUFFER_SIZE);
+	printf("Listening for requests on socket %d\n", socket);
 
 	while(1){
-		recv(*(int*)socket, buffer, BUFFER_SIZE, 0);
+		recv(socket, buffer, BUFFER_SIZE, 0);
 		if ((strcmp(buffer, "\0") != 0) && (strcmp(buffer, "\n\0") != 0)){
-			printf("hi\n");
-			parseHTTPrequest(buffer, *(int*)socket);
+			parseHTTPrequest(buffer, socket);
 		}
 	}
 }
 
-void initializeServer(int port){
+void respond(int n)
+{
+	ROOT = getenv("PWD");
+	printf("Responding to requests on socket %d\n\n", clients[n]);
+    char mesg[99999], *reqline[3], data_to_send[1024], path[99999];
+    int rcvd, fd, bytes_read;
+
+    memset( (void*)mesg, (int)'\0', 99999 );
+
+    rcvd=recv(clients[n], mesg, 99999, 0);
+
+    if (rcvd<0)    // receive error
+        fprintf(stderr,("recv() error\n"));
+    else if (rcvd==0)    // receive socket closed
+        fprintf(stderr,"Client disconnected upexpectedly.\n");
+    else    // message received
+    {
+        printf("%s", mesg);
+        reqline[0] = strtok (mesg, " \t\n");
+        if ( strncmp(reqline[0], "GET\0", 4)==0 )
+        {
+            reqline[1] = strtok (NULL, " \t");
+            reqline[2] = strtok (NULL, " \t\n");
+            if ( strncmp( reqline[2], "HTTP/1.0", 8)!=0 && strncmp( reqline[2], "HTTP/1.1", 8)!=0 )
+            {
+                write(clients[n], "HTTP/1.0 400 Bad Request\n", 25);
+            }
+            else
+            {
+                if ( strncmp(reqline[1], "/\0", 2)==0 )
+                    reqline[1] = "/index.html";        //Because if no file is specified, index.html will be opened by default (like it happens in APACHE...
+
+                strcpy(path, ROOT);
+                strcpy(&path[strlen(ROOT)], reqline[1]);
+                printf("file: %s\n", path);
+
+                if ( (fd=open(path, O_RDONLY))!=-1 )    //FILE FOUND
+                {
+                    send(clients[n], "HTTP/1.0 200 OK\n\n", 17, 0);
+                    while ( (bytes_read=read(fd, data_to_send, 1024))>0 )
+                        write (clients[n], data_to_send, bytes_read);
+                }
+                else{
+                	write(clients[n], "HTTP/1.0 404 Not Found\n", 23); //FILE NOT FOUND
+                	printf("NOT FOUND\n");
+                }   
+            }
+        }
+    }
+
+    //Closing SOCKET
+    shutdown (clients[n], SHUT_RDWR);         //All further send and recieve operations are DISABLED...
+    close(clients[n]);
+    clients[n]=-1;
+}
+
+
+//void initializeServer(int port){
+void initializeServer(char *port){
 
 	int create_socket, new_socket;
 	socklen_t addrlen;
 	char *buffer = malloc(BUFFER_SIZE);
 	struct sockaddr_in address;
+
+	int i = 0;
+	for(i; i<MAX_CONNECTIONS; i++){
+		clients[i] == -1;
+	}
 
 	if ((create_socket = socket(AF_INET, SOCK_STREAM, 0)) > 0){
 		printf("Socket created successfully\n");
@@ -412,7 +492,7 @@ void initializeServer(int port){
 
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(port);
+	address.sin_port = htons(8097);
 
 	int yes = 1;
 	if ( setsockopt(create_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 )
@@ -437,68 +517,26 @@ void initializeServer(int port){
 	}
 
 
-	if (listen(create_socket, 10) < 0){
+	if (listen(create_socket, 1000) < 0){
 		perror("Server: listen");
 		exit(1);
-	} //this used to be inside the while loop
+	}
 
 
-	struct client_list {
-		int val;
-		struct client_list * next;
-	};
-
-	typedef struct client_list item;
-
-	item * curr, * head;
-	int i;
-
-	head = NULL;
-
-	int test = 0;
+	int slot = 0;
 	while (1){
-		int already_connected = 0; //0 means not connected, 1 is connected
-		curr = head;
-		if ((new_socket = accept(create_socket, (struct sockaddr *) &address, &addrlen)) > 0){
-			while(curr){
-				if(new_socket == curr->val){
-					already_connected = 1;
-					break;
+		if ((clients[slot] = accept(create_socket, (struct sockaddr *) &address, &addrlen)) > 0){
+				if (fork() == 0){
+					respond(slot);
+					slot++;
+					exit(0);
 				}
-				curr = curr->next;
-			}
-			
-
-			if (already_connected == 0){
-				curr = (item *)malloc(sizeof(item));
-				curr->val = new_socket;
-				curr->next = head;
-				head = curr;
-
-
-				printf("The client is connected...\n");
-				printf("%d\n", new_socket);
-				
-				//sendHTMLPage(new_socket, "index.html");
-				pthread_t listener_thread;
-				pthread_create(&listener_thread, NULL, listenForRequests, &new_socket);
-				//listenForRequests(&new_socket);
-
-				//pthread_join(listener_thread, NULL);
-
-			}
-			else{
-				printf("testing...");
-			}
-
 		}
-
 		else{
 			perror("Server: accept");
 			exit(1);	
 		}
 	}
-
 }
 
 

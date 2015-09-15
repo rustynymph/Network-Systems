@@ -10,6 +10,9 @@
 #include "httpserver.h"
 
 int main(){
-	initializeServer(8097);
+	//initializeServer(8097);
+	char PORT[6];
+	strcpy(PORT, "8097");
+	initializeServer(PORT);
 	return 0;
 }
