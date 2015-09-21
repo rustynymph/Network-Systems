@@ -50,6 +50,10 @@ void respond(int n) {
 	char *root;
 	char *extension;
 	root = getenv("PWD");
+	char *document_root;
+	document_root = malloc(100);
+	strcpy(document_root, root);
+	strcat(document_root, "/www");
 
     char mesg[99999], *request_str[3], data_to_send[BUFFER_SIZE], path[99999];
     int request, fd, bytes_read;
@@ -97,8 +101,8 @@ void respond(int n) {
 					 write(connected_clients[n], not_imp_str, not_imp_strlen);               	
                 }
 
-                strcpy(path, root);
-                strcpy(&path[strlen(root)], request_str[1]); //creating an absolute filepath
+                strcpy(path, document_root);
+                strcpy(&path[strlen(document_root)], request_str[1]); //creating an absolute filepath
 
                 /* 400 Error */
                 if (strlen(path) > MAX_URI){
