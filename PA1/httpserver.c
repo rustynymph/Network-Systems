@@ -71,9 +71,16 @@ void respond(int n) {
             /* 400 Error */
             if ( strncmp( request_str[2], "HTTP/1.0", 8)!=0 && strncmp( request_str[2], "HTTP/1.1", 8)!=0 )
             {
-            	char *bad_request_str = "HTTP/1.1 400 Bad Request: Invalid HTTP-Version: %s\n", request_str[2];
+            	char *bad_request_str;
+            	bad_request_str = malloc(80);
+            	strcpy(bad_request_str, "HTTP/1.1 400 Bad Request: Invalid HTTP-Version: ");
+            	strcat(bad_request_str, request_str[2]);
+            	strcat(bad_request_str, "\n");
+
+            	//char *bad_request_str = "HTTP/1.1 400 Bad Request: Invalid HTTP-Version: %s\n", request_str[2];
             	int bad_request_strlen = strlen(bad_request_str);
                 write(connected_clients[n], bad_request_str, bad_request_strlen);
+                //free(bad_request_str);
             }
             else
             {
@@ -91,9 +98,15 @@ void respond(int n) {
                 }
                 /* 501 Error */
                 if(type_found != 1){
-					 char *not_imp_str = "HTTP/1.1 501 Not Implemented: %s\n", request_str[1];
-					 int not_imp_strlen = strlen(not_imp_str);
-					 write(connected_clients[n], not_imp_str, not_imp_strlen);               	
+                	char *not_imp_str;
+                	not_imp_str = malloc(80);
+                	strcpy(not_imp_str, "HTTP/1.1 501 Not Implemented: ");
+                	strcat(not_imp_str, path);
+                	strcat(not_imp_str, "\n");
+                		                	
+					int not_imp_strlen = strlen(not_imp_str);
+					write(connected_clients[n], not_imp_str, not_imp_strlen);
+					//free(not_imp_str);               	
                 }
 
                 strcpy(path, document_root);
@@ -101,14 +114,22 @@ void respond(int n) {
 
                 /* 400 Error */
                 if (strlen(path) > MAX_URI){
-                 	char *invalid_uri_str = "HTTP/1.1 400 Bad Request: Invalid URI: %s\n", path;
+
+                	char *invalid_uri_str;
+                	invalid_uri_str = malloc(80);
+                	strcpy(invalid_uri_str, "HTTP/1.1 400 Bad Request: Invalid URI: ");
+                	strcat(invalid_uri_str, path);
+                	strcat(invalid_uri_str, "\n");
+                		                	
                 	int invalid_uri_strlen = strlen(invalid_uri_str);
-                	write(connected_clients[n], invalid_uri_str, invalid_uri_strlen);               	
+                	write(connected_clients[n], invalid_uri_str, invalid_uri_strlen);
+                	//free(invalid_uri_str);               	
                 }
 
                 else{
 	                if ( (fd=open(path, O_RDONLY))!=-1 )
 	                {
+
 	                	char *content_type_header;
 	                	content_type_header = malloc(50);
 	                	strcpy(content_type_header, "Content-Type: ");
@@ -132,13 +153,22 @@ void respond(int n) {
 	                    send(connected_clients[n], content_length_header, content_length_header_len, 0);
 	                    send(connected_clients[n], "Connection: keep-alive\n\n", 24, 0);
 	                    while ( (bytes_read=read(fd, data_to_send, BUFFER_SIZE))>0 )
-	                        write (connected_clients[n], data_to_send, bytes_read);                    	
+	                        write (connected_clients[n], data_to_send, bytes_read);   
+
+	                    //free(content_type_header);                 	
+	                    //free(content_length_header);                 	
 	                }
 	                /* 404 Error */
 	                else{
-	                	char *not_found_str = "HTTP/1.1 404 Not Found %s\n", path;
+	                	char *not_found_str;
+	                	not_found_str = malloc(80);
+	                	strcpy(not_found_str, "HTTP/1.1 404 Not Found: ");
+	                	strcat(not_found_str, path);
+	                	strcat(not_found_str, "\n");
+
 	                	int not_found_strlen = strlen(not_found_str);
 	                	write(connected_clients[n], not_found_str, not_found_strlen); //file not found, send 404 error
+	                	//free(not_found_str);
 	                }   
             }
             }
