@@ -29,7 +29,7 @@ char *get_filename_ext(char *filename) {
     return dot + 1;
 }
 
-char *generateContentTypeString(char *extension) {
+char *getContentTypeString(char *extension) {
 	int i = 0;
 	int index;
 	for(i; i<MAX_SUPPORTED_TYPES; i++){
@@ -38,12 +38,7 @@ char *generateContentTypeString(char *extension) {
 			break;
 		}
 	}
-	char *content_type_str = "Content-Type: ";
-	char *type = content_types[index];
-	strcat(content_type_str, type);
-	printf("%s\n", content_type_str);
-	return content_type_str;
-
+	return content_types[index];
 }
 
 void respond(int n) {
@@ -114,10 +109,28 @@ void respond(int n) {
                 else{
 	                if ( (fd=open(path, O_RDONLY))!=-1 )
 	                {
-						//generateContentTypeString(extension);
-	    	        	//int content_typ_strlen = strlen(content_typ_str);                	
-	                    send(connected_clients[n], "HTTP/1.1 200 OK\n\n", 17, 0);
-	                    //send(connected_clients[n], content_typ_str, content_typ_strlen, 0);
+	                	char *content_type_header;
+	                	content_type_header = malloc(50);
+	                	strcpy(content_type_header, "Content-Type: ");
+	                	strcat(content_type_header, getContentTypeString(extension));
+	                	strcat(content_type_header, "\n");
+	                	int content_type_header_len = strlen(content_type_header);
+
+	                	int fsize = lseek(fd, 0, SEEK_END);
+	                	lseek(fd, 0, SEEK_SET);
+	                	char fsize_str[20];
+	                	sprintf(fsize_str, "%d", fsize);
+	                	char *content_length_header;
+	                	content_length_header = malloc(50);
+	                	strcpy(content_length_header, "Content-Length: ");
+	                	strcat(content_length_header, fsize_str);
+	                	strcat(content_length_header, "\n");
+	                	int content_length_header_len = strlen(content_length_header);
+
+	                    send(connected_clients[n], "HTTP/1.1 200 OK\n", 16, 0);
+	                    send(connected_clients[n], content_type_header, content_type_header_len, 0);
+	                    send(connected_clients[n], content_length_header, content_length_header_len, 0);
+	                    send(connected_clients[n], "Connection: keep-alive\n\n", 24, 0);
 	                    while ( (bytes_read=read(fd, data_to_send, BUFFER_SIZE))>0 )
 	                        write (connected_clients[n], data_to_send, bytes_read);                    	
 	                }
