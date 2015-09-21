@@ -15,10 +15,13 @@
 #define MAX_SUPPORTED_TYPES 250
 #define BUFFER_SIZE 1024
 #define MAX_RETRIES 100
+#define MAX_URI 255
 
 int connected_clients[MAX_CONNECTIONS];
-char *supported_types[MAX_SUPPORTED_TYPES];
+char *supported_types[MAX_SUPPORTED_TYPES]; //stores values such as gif, png, html, etc
+char *content_types[MAX_SUPPORTED_TYPES];  //stores the corresponding content type strings such as text/html, etc
 char *PORT;
+char *DOC_ROOT;
 
 char *get_filename_ext(char *filename) {
     char *dot = strrchr(filename, '.');
@@ -26,8 +29,24 @@ char *get_filename_ext(char *filename) {
     return dot + 1;
 }
 
-void respond(int n)
-{
+char *generateContentTypeString(char *extension) {
+	int i = 0;
+	int index;
+	for(i; i<MAX_SUPPORTED_TYPES; i++){
+		if(strcmp(extension, supported_types[i]) == 0){
+			index = i;
+			break;
+		}
+	}
+	char *content_type_str = "Content-Type: ";
+	char *type = content_types[index];
+	strcat(content_type_str, type);
+	printf("%s\n", content_type_str);
+	return content_type_str;
+
+}
+
+void respond(int n) {
 	char *root;
 	char *extension;
 	root = getenv("PWD");
@@ -50,6 +69,7 @@ void respond(int n)
         {
             request_str[1] = strtok (NULL, " \t");
             request_str[2] = strtok (NULL, " \t\n");
+            /* 400 Error */
             if ( strncmp( request_str[2], "HTTP/1.0", 8)!=0 && strncmp( request_str[2], "HTTP/1.1", 8)!=0 )
             {
             	char *bad_request_str = "HTTP/1.1 400 Bad Request: Invalid HTTP-Version: %s\n", request_str[2];
@@ -61,7 +81,6 @@ void respond(int n)
                 if ( strncmp(request_str[1], "/\0", 2)==0 )
                     request_str[1] = "/index.html"; //Client is requesting the root directory, send it index.html
 
-                /*
                 extension = get_filename_ext(request_str[1]);
                 int type_found = 0;
                 int i = 0;
@@ -71,27 +90,40 @@ void respond(int n)
                 		break;
                 	}
                 }
+                /* 501 Error */
                 if(type_found != 1){
-                	printf("%s\n", request_str[1]);
 					 char *not_imp_str = "HTTP/1.1 501 Not Implemented: %s\n", request_str[1];
 					 int not_imp_strlen = strlen(not_imp_str);
 					 write(connected_clients[n], not_imp_str, not_imp_strlen);               	
-                }*/
+                }
 
                 strcpy(path, root);
                 strcpy(&path[strlen(root)], request_str[1]); //creating an absolute filepath
 
-                if ( (fd=open(path, O_RDONLY))!=-1 )
-                {
-                    send(connected_clients[n], "HTTP/1.1 200 OK\n\n", 17, 0);
-                    while ( (bytes_read=read(fd, data_to_send, BUFFER_SIZE))>0 )
-                        write (connected_clients[n], data_to_send, bytes_read);                    	
+                /* 400 Error */
+                if (strlen(path) > MAX_URI){
+                 	char *invalid_uri_str = "HTTP/1.1 400 Bad Request: Invalid URI: %s\n", path;
+                	int invalid_uri_strlen = strlen(invalid_uri_str);
+                	write(connected_clients[n], invalid_uri_str, invalid_uri_strlen);               	
                 }
+
                 else{
-                	char *not_found_str = "HTTP/1.1 404 Not Found %s\n", path;
-                	int not_found_strlen = strlen(not_found_str);
-                	write(connected_clients[n], not_found_str, not_found_strlen); //file not found, send 404 error
-                }   
+	                if ( (fd=open(path, O_RDONLY))!=-1 )
+	                {
+						//generateContentTypeString(extension);
+	    	        	//int content_typ_strlen = strlen(content_typ_str);                	
+	                    send(connected_clients[n], "HTTP/1.1 200 OK\n\n", 17, 0);
+	                    //send(connected_clients[n], content_typ_str, content_typ_strlen, 0);
+	                    while ( (bytes_read=read(fd, data_to_send, BUFFER_SIZE))>0 )
+	                        write (connected_clients[n], data_to_send, bytes_read);                    	
+	                }
+	                /* 404 Error */
+	                else{
+	                	char *not_found_str = "HTTP/1.1 404 Not Found %s\n", path;
+	                	int not_found_strlen = strlen(not_found_str);
+	                	write(connected_clients[n], not_found_str, not_found_strlen); //file not found, send 404 error
+	                }   
+            }
             }
         }
     }
@@ -164,11 +196,13 @@ void configureServer(char *path){
 	int fd, bytes_read;
 	char *data_to_send;
 	char *file_type;
+	char *cont_type;
 	data_to_send = malloc(BUFFER_SIZE);
 
 	int i = 0;
 	for(i; i<MAX_SUPPORTED_TYPES; i++){
 		supported_types[i] = "";
+		content_types[i] = "";
 	}
 
 	int n = 0;
@@ -190,16 +224,26 @@ void configureServer(char *path){
 		 				extension[j] = new_token[i];
 		 				j++;
 		 			}
-		 			file_type = extension;
+		 			file_type = malloc(10);
+		 			memcpy(file_type, extension, strlen(extension) + 1);
 		 			supported_types[n] = file_type;
+
+		 			token = strtok(NULL, " \t\n");
+		 			cont_type = malloc(20);
+		 			memcpy(cont_type, token, strlen(token) + 1);		 			
+		 			content_types[n] = cont_type;
 		 			n++;
+		 		}
+		 		else if(strcmp(token, "DocumentRoot") == 0){
+		 			token = strtok(NULL, " \t\n");
+		 			DOC_ROOT = token;		 			
 		 		}
 		 		token = strtok(NULL, " \t\n");
 		 	}
 		 }
 	}
 	else{
-		printf("Configuration file not found\n");
+		printf("Configuration file not found: %s\n", path);
 		exit(1);
 	}
 
