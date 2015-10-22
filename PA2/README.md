@@ -25,7 +25,7 @@ Compiling and Running the servers
 =================================
 gcc -o dfs dfs.c
 
-./dfs <DIRECTORY> <PORT NUMBER>
+./dfs DIRECTORY PORT_NUMBER
 
 
 *Note:* when specifying the directory, do not put a slash in front. 

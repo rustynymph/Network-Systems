@@ -34,13 +34,15 @@ typedef struct{
 	char passwords[MAX_USERS][32];
 }config_information;
 
+config_information info;
+
 typedef struct{
 	int server;
 	int filenum;
 	char *buffer;
 }download_info;
 
-int authenticate(config_information info){
+int authenticate(){
 	int user_index = -1;
 	int validUsername = 0;
 	int validPassword = 0;
@@ -479,8 +481,8 @@ char *generateMD5Hash(char *filename){
     unsigned char data[1024];
 
     if (inFile == NULL) {
-        printf ("%s can't be opened.\n", filename);
-        return 0;
+        printf ("\n%s can't be opened\n", filename);
+        return NULL;
     }
 
     MD5_Init (&mdContext);
@@ -511,8 +513,12 @@ void putFile(char *filename){
 	char *hashed_file;
 	hashed_file = malloc(256);
 	hashed_file = generateMD5Hash(filename);
-	int key_val = keyValueFromHash(hashed_file);
-	splitFileOntoServers(key_val, filename);
+	if(hashed_file != NULL){
+		int key_val = keyValueFromHash(hashed_file);
+		splitFileOntoServers(key_val, filename);		
+	}
+	else{ printf("%s doesn't exist\n", filename); }
+
 }
 
 void getFile(char *filename){
@@ -524,19 +530,25 @@ void listFiles(){
 }
 
 void dispatchCommand(char *command){
-
+	int validUser;
 	char *token = strtok(command, " \t\n");
 	if(token != NULL){
 		if(strcmp(token, "GET") == 0) {
 			token = strtok(NULL, " \t\n");
-			getFile(token);
+			validUser = authenticate();
+			if(validUser == 1){ getFile(token); }
+			else{ printf("Invalid login credentials.\n"); }
 		}
 		else if(strcmp(token, "PUT") == 0){
 			token = strtok(NULL, " \t\n");
-			putFile(token);
+			validUser = authenticate();
+			if(validUser == 1) { putFile(token); }
+			else{ printf("Invalid login credentials.\n"); }
 		}
 		else if(strcmp(token, "LIST") == 0){
-			listFiles();
+			validUser = authenticate();
+			if(validUser == 1){	listFiles(); }
+			else{ printf("Invalid login credentials.\n"); }
 		}
 		else{
 			printf("invalid command\n");
@@ -564,7 +576,7 @@ int initializeConnection(int port){
 
 config_information parseConfigurationFile(char *filename){
 
-	config_information info;
+	config_information conf_info;
 
 	FILE *f = fopen(filename, "rb");
 	fseek(f, 0, SEEK_END);
@@ -579,11 +591,11 @@ config_information parseConfigurationFile(char *filename){
 	while(token != NULL){
 		if(strcmp(token, "Username:") == 0){
 			token = strtok(NULL, " \t\n");
-			strcpy(info.usernames[usercount], token);
+			strcpy(conf_info.usernames[usercount], token);
 			token = strtok(NULL, " \t\n");
 			if(strcmp(token, "Password:") == 0){
 				token = strtok(NULL, " \t\n");
-				strcpy(info.passwords[usercount], token);
+				strcpy(conf_info.passwords[usercount], token);
 				usercount++;
 			}
 			else{
@@ -593,7 +605,7 @@ config_information parseConfigurationFile(char *filename){
 		token = strtok(NULL, " \t\n");
 	}
 
-	return info;
+	return conf_info;
 }
 
 int main(int argc, char* argv[]){
@@ -607,7 +619,7 @@ int main(int argc, char* argv[]){
 		printf("USAGE: ./dfc <CONFIGURATION FILE>\n");
 	}
 
-	config_information info = parseConfigurationFile(configuration_file);
+	info = parseConfigurationFile(configuration_file);
 
 	char *buffer;
 	buffer = malloc(BUFFERSIZE);
