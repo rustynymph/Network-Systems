@@ -38,7 +38,6 @@ void writeToDisk(file_partition file){
 	FILE *fp;
 	char ch;
 	fp=fopen(new_file_name,"w");
-	//fwrite(file.buffer, 1, sizeof(file.buffer), fp);
 	fprintf(fp, "%s", file.buffer);
 	fclose(fp);
 }
@@ -315,6 +314,12 @@ void initializeServer(int port){
 int main(int argc, char* argv[]){
 	if(argc > 2){
 		directory = argv[1];
+
+	struct stat st = {0};
+	if (stat(directory, &st) == -1) {
+	    mkdir(directory, 0700);
+	}
+
 		int port = atoi(argv[2]);
 		initializeServer(port);
 		return 0;	

@@ -176,22 +176,18 @@ void downloadFiles(char *filename, file_piece_locations locations){
 
 	FILE *fp;
 	fp=fopen(filename,"w");
-	//fwrite(piece1.buffer, 1, piece1BufferSize, fp);
 	fprintf(fp, "%s", piece1.buffer);
 	fclose(fp);
 
 	fp=fopen(filename,"a");
-	//fwrite(piece2.buffer, 1, piece2BufferSize, fp);
 	fprintf(fp, "%s", piece2.buffer);
 	fclose(fp);
 
 	fp=fopen(filename,"a");
-	//fwrite(piece3.buffer, 1, piece3BufferSize, fp);
 	fprintf(fp, "%s", piece3.buffer);
 	fclose(fp);
 
 	fp=fopen(filename,"a");
-	//fwrite(piece4.buffer, 1, piece4BufferSize, fp);
 	fprintf(fp, "%s", piece4.buffer);
 	fclose(fp);		
 }
