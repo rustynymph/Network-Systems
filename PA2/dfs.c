@@ -46,20 +46,20 @@ void handleGetRequest(int socket){
 	printf("\nHandling GET request...\n");
 	int fd;
 	char *mesg;
-	mesg = malloc(256);
-	int filename_bytes;
+	int filename_bytes = 0;
 	int download;
 	char *filename;
 	int pieceThere[4] = {0, 0, 0, 0};
 
-	if (recv(socket, &filename_bytes, 4, 0) >= 1){
-		printf("Received filenamebytes: %d\n", filename_bytes);
-		filename = malloc(filename_bytes);
-	}
-	if (recv(socket, mesg, filename_bytes, 0) >= 1){
-		printf("Received filename: %s\n", mesg);
-		filename = mesg;
-	}
+	recv(socket, &filename_bytes, 4, 0);
+	printf("Received filenamebytes: %d\n", filename_bytes);
+	mesg = malloc(filename_bytes);
+	filename = malloc(filename_bytes);
+	
+	recv(socket, mesg, filename_bytes, 0);
+	mesg[filename_bytes] = '\0';
+	printf("Received filename: %s\n", mesg);
+	filename = mesg;
 
 	char *filename1;
 	filename1 = malloc(strlen(filename) + 2);
@@ -86,6 +86,7 @@ void handleGetRequest(int socket){
 	if((fd=open(filename4, O_RDONLY))!=-1){
 		pieceThere[3] = 1;
 	}
+	close(fd);
 
 	send(socket, &pieceThere[0], 4, 0);					
 	send(socket, &pieceThere[1], 4, 0);					
@@ -114,15 +115,16 @@ void handleGetRequest(int socket){
 		fseek(f, 0, SEEK_END);
 		long fsize = ftell(f);
 		fseek(f, 0, SEEK_SET);
-		char *buffer_1 = malloc(fsize + 1);
-		fread(buffer_1, fsize, 1, f);
+		char *buffer_1 = malloc(fsize+1);
+		//fread(buffer_1, fsize, 1, f);
+		fgets(buffer_1, fsize+1, f);
 		fclose(f);		
 
+		//buffer_1[fsize] = '\0';
 		printf("File size of piece %d: %ld\n", pieceNum1, fsize);
 		printf("File contents of piece %d: %s\n", pieceNum1, buffer_1);
 		send(socket, &fsize, 8, 0);
 		send(socket, buffer_1, fsize, 0);
-
 
 	}
 	else if(download == 2){
@@ -146,17 +148,23 @@ void handleGetRequest(int socket){
 		fseek(f, 0, SEEK_END);
 		long fsize = ftell(f);
 		fseek(f, 0, SEEK_SET);
-		char *buffer_1 = malloc(fsize + 1);
-		fread(buffer_1, fsize, 1, f);
+		char *buffer_1 = malloc(fsize+1);
+		fgets(buffer_1, fsize+1, f);
+		//fread(buffer_1, fsize, 1, f);
 		fclose(f);		
 
 		FILE *f2 = fopen(filename_d2, "rb");
 		fseek(f2, 0, SEEK_END);
 		long fsize2 = ftell(f2);
 		fseek(f2, 0, SEEK_SET);
-		char *buffer_2 = malloc(fsize2 + 1);
-		fread(buffer_2, fsize2, 1, f);
+		char *buffer_2 = malloc(fsize2+1);
+		fgets(buffer_2, fsize2+1, f2);
+		//fread(buffer_2, fsize2, 1, f2);
 		fclose(f2);				
+
+
+		//buffer_1[fsize] = '\0';
+		//buffer_2[fsize2] = '\0';
 
 		printf("File size of piece %d: %ld\n", pieceNum1, fsize);
 		printf("File contents of piece %d: %s\n", pieceNum1, buffer_1);
@@ -164,14 +172,15 @@ void handleGetRequest(int socket){
 		printf("File contents of piece %d: %s\n", pieceNum2, buffer_2);
 
 		send(socket, &fsize, 8, 0);
-		send(socket, &fsize2, 8, 0);	
-
 		send(socket, buffer_1, fsize, 0);
+
+		send(socket, &fsize2, 8, 0);
 		send(socket, buffer_2, fsize2, 0);
 	}				
 }
 
 void handleListRequest(int socket){
+	/* STUB */
 }
 
 void handlePutRequest(int socket){
@@ -268,8 +277,7 @@ void initializeServer(int port){
 	address.sin_port = htons(port);
 
 	int yes = 1;
-	if ( setsockopt(create_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 )
-	{
+	if ( setsockopt(create_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 ){
 	    perror("setsockopt");
 	}
 	int num_try = 0;
@@ -286,7 +294,6 @@ void initializeServer(int port){
 			}
 		}		
 	}
-
 	if (listen(create_socket, 1000) < 0){
 		perror("Server: listen");
 		exit(1);
@@ -305,7 +312,6 @@ void initializeServer(int port){
 			exit(1);	
 		}
 	}	
-
 	//shutdown(create_socket, SHUT_RDWR);
 	//close(create_socket);
 }

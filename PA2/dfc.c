@@ -1,20 +1,21 @@
-#include<netinet/in.h>
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<sys/types.h>
-#include<sys/stat.h>
-#include<sys/socket.h>
-#include<arpa/inet.h>
-#include<netdb.h>
-#include<signal.h>
-#include<fcntl.h>
-#include<openssl/md5.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <openssl/md5.h>
 
 #define MAX_RETRIES 100
 #define BUFFERSIZE 256
 #define MAX_USERS 20
+
 int servers[4];
 int server1;
 int server2;
@@ -117,6 +118,7 @@ file_piece_locations mapFilePieceToServer(int server1Pieces[4], int server2Piece
 void downloadFiles(char *filename, file_piece_locations locations){
 	int downloadFromServer1, downloadFromServer2, downloadFromServer3, downloadFromServer4;
 	downloadFromServer1 = downloadFromServer2 = downloadFromServer3 = downloadFromServer4 = 0;
+
 	download_info piece1;
 	piece1.filenum = 1;
 	download_info piece2;
@@ -146,123 +148,130 @@ void downloadFiles(char *filename, file_piece_locations locations){
 	else if (locations.piece4Sock == server3){ piece4.server = server3; downloadFromServer3++;}
 	else if (locations.piece4Sock == server4){ piece4.server = server4; downloadFromServer4++;}
 
-	send(server1, &downloadFromServer1, 4, 0);
-	send(server2, &downloadFromServer2, 4, 0);
-	send(server3, &downloadFromServer3, 4, 0);
-	send(server4, &downloadFromServer4, 4, 0);
-
-	send(locations.piece1Sock, &piece1.filenum, 4, 0);
-	send(locations.piece2Sock, &piece2.filenum, 4, 0);
-	send(locations.piece3Sock, &piece3.filenum, 4, 0);
-	send(locations.piece4Sock, &piece4.filenum, 4, 0);
+	if(server1 != 0) send(server1, &downloadFromServer1, 4, 0);
+	if(server2 != 0) send(server2, &downloadFromServer2, 4, 0);
+	if(server3 != 0) send(server3, &downloadFromServer3, 4, 0);
+	if(server4 != 0) send(server4, &downloadFromServer4, 4, 0);
 
 	int piece1BufferSize, piece2BufferSize, piece3BufferSize, piece4BufferSize;
-	recv(locations.piece1Sock, &piece1BufferSize, 8, 0);
-	recv(locations.piece2Sock, &piece2BufferSize, 8, 0);
-	recv(locations.piece3Sock, &piece3BufferSize, 8, 0);
-	recv(locations.piece4Sock, &piece4BufferSize, 8, 0);
-
-	piece1.buffer = malloc(piece1BufferSize);
-	piece2.buffer = malloc(piece2BufferSize);
-	piece3.buffer = malloc(piece3BufferSize);
-	piece4.buffer = malloc(piece4BufferSize);
-
-	recv(locations.piece1Sock, piece1.buffer, piece1BufferSize, 0);
-	printf("Buffer from piece 1: %s\n", piece1.buffer);
-	recv(locations.piece2Sock, piece2.buffer, piece2BufferSize, 0);
-	printf("Buffer from piece 2: %s\n", piece2.buffer);
-	recv(locations.piece3Sock, piece3.buffer, piece3BufferSize, 0);
-	printf("Buffer from piece 3: %s\n", piece3.buffer);
-	recv(locations.piece4Sock, piece4.buffer, piece4BufferSize, 0);
-	printf("Buffer from piece 4: %s\n", piece4.buffer);
-
 	FILE *fp;
-	fp=fopen(filename,"w");
-	fprintf(fp, "%s", piece1.buffer);
-	fclose(fp);
 
-	fp=fopen(filename,"a");
-	fprintf(fp, "%s", piece2.buffer);
-	fclose(fp);
+	if(locations.piece1Sock != 0) send(locations.piece1Sock, &piece1.filenum, 4, 0);	
+	if(locations.piece2Sock != 0) send(locations.piece2Sock, &piece2.filenum, 4, 0);
+	if(locations.piece3Sock != 0) send(locations.piece3Sock, &piece3.filenum, 4, 0);	
+	if(locations.piece4Sock != 0) send(locations.piece4Sock, &piece4.filenum, 4, 0);
 
-	fp=fopen(filename,"a");
-	fprintf(fp, "%s", piece3.buffer);
-	fclose(fp);
-
-	fp=fopen(filename,"a");
-	fprintf(fp, "%s", piece4.buffer);
-	fclose(fp);		
+	if(locations.piece1Sock != 0){
+		recv(locations.piece1Sock, &piece1BufferSize, 8, 0);
+		piece1.buffer = malloc(piece1BufferSize);
+		recv(locations.piece1Sock, piece1.buffer, piece1BufferSize, 0);
+		piece1.buffer[piece1BufferSize] = '\0';
+		printf("Buffer from piece 1: %s\n", piece1.buffer);
+		fp=fopen(filename,"a");
+		fprintf(fp, "%s", piece1.buffer);
+		fclose(fp);		
+	}
+	if(locations.piece2Sock != 0){
+		recv(locations.piece2Sock, &piece2BufferSize, 8, 0);
+		piece2.buffer = malloc(piece2BufferSize);
+		recv(locations.piece2Sock, piece2.buffer, piece2BufferSize, 0);
+		piece2.buffer[piece2BufferSize] = '\0';
+		printf("Buffer from piece 2: %s\n", piece2.buffer);
+		fp=fopen(filename,"a");
+		fprintf(fp, "%s", piece2.buffer);
+		fclose(fp);			
+	}
+	if(locations.piece3Sock != 0){	
+		recv(locations.piece3Sock, &piece3BufferSize, 8, 0);
+		piece3.buffer = malloc(piece3BufferSize);
+		recv(locations.piece3Sock, piece3.buffer, piece3BufferSize, 0);
+		piece3.buffer[piece3BufferSize] = '\0';
+		printf("Buffer from piece 3: %s\n", piece3.buffer);
+		fp=fopen(filename,"a");
+		fprintf(fp, "%s", piece3.buffer);
+		fclose(fp);		
+	}		
+	if(locations.piece4Sock != 0){
+		recv(locations.piece4Sock, &piece4BufferSize, 8, 0);
+		piece4.buffer = malloc(piece4BufferSize);
+		recv(locations.piece4Sock, piece4.buffer, piece4BufferSize, 0);
+		piece4.buffer[piece4BufferSize] = '\0';
+		printf("Buffer from piece 4: %s\n", piece4.buffer);
+		fp=fopen(filename,"a");
+		fprintf(fp, "%s", piece4.buffer);
+		fclose(fp);			
+	}	
 }
 
 void retrieveFileFromServers(char *filename){
-	int filename_length = strlen(filename);
+	int filename_length = (int)strlen(filename);
 	int piece;
-	int pieceThere1[4];
-	int pieceThere2[4];
-	int pieceThere3[4];
-	int pieceThere4[4];
-	int piece1=0;
-	int piece2=0;
-	int piece3=0;
-	int piece4=0;
-	int piece1_sock=0;
-	int piece2_sock=0;
-	int piece3_sock=0;
-	int piece4_sock=0;	
+	int pieceThere1[4] = {0, 0, 0, 0};
+	int pieceThere2[4] = {0, 0, 0, 0};
+	int pieceThere3[4] = {0, 0, 0, 0};
+	int pieceThere4[4] = {0, 0, 0, 0};
+	int piece1 = 0;
+	int piece2 = 0;
+	int piece3 = 0;
+	int piece4 = 0;
+	int piece1_sock = 0;
+	int piece2_sock = 0;
+	int piece3_sock = 0;
+	int piece4_sock = 0;	
 
 	//printf("sending first header\n");
-	send(server1, "1", 1, 0);
-	send(server2, "1", 1, 0);
-	send(server3, "1", 1, 0);
-	send(server4, "1", 1, 0);
-
-	//printf("sending file length\n");
-	send(server1, &filename_length, sizeof(filename_length), 0);
-	send(server2, &filename_length, sizeof(filename_length), 0);
-	send(server3, &filename_length, sizeof(filename_length), 0);
-	send(server4, &filename_length, sizeof(filename_length), 0);
-
-	//printf("sending filename\n");
-	send(server1, filename, filename_length, 0);
-	send(server2, filename, filename_length, 0);
-	send(server3, filename, filename_length, 0);
-	send(server4, filename, filename_length, 0);
-
-	recv(server1, &piece, 4, 0);
-	pieceThere1[0] = piece;
-	recv(server1, &piece, 4, 0);
-	pieceThere1[1] = piece;
-	recv(server1, &piece, 4, 0);
-	pieceThere1[2] = piece;
-	recv(server1, &piece, 4, 0);
-	pieceThere1[3] = piece;
-
-	recv(server2, &piece, 4, 0);
-	pieceThere2[0] = piece;
-	recv(server2, &piece, 4, 0);
-	pieceThere2[1] = piece;
-	recv(server2, &piece, 4, 0);
-	pieceThere2[2] = piece;
-	recv(server2, &piece, 4, 0);
-	pieceThere2[3] = piece;
-
-	recv(server3, &piece, 4, 0);
-	pieceThere3[0] = piece;
-	recv(server3, &piece, 4, 0);
-	pieceThere3[1] = piece;
-	recv(server3, &piece, 4, 0);
-	pieceThere3[2] = piece;
-	recv(server3, &piece, 4, 0);
-	pieceThere3[3] = piece;
-
-	recv(server4, &piece, 4, 0);
-	pieceThere4[0] = piece;
-	recv(server4, &piece, 4, 0);
-	pieceThere4[1] = piece;
-	recv(server4, &piece, 4, 0);
-	pieceThere4[2] = piece;
-	recv(server4, &piece, 4, 0);
-	pieceThere4[3] = piece;
+	if(server1 != 0){
+		send(server1, "1", 1, 0);
+		send(server1, &filename_length, 4, 0);
+		send(server1, filename, filename_length, 0);
+		recv(server1, &piece, 4, 0);
+		pieceThere1[0] = piece;
+		recv(server1, &piece, 4, 0);
+		pieceThere1[1] = piece;
+		recv(server1, &piece, 4, 0);
+		pieceThere1[2] = piece;
+		recv(server1, &piece, 4, 0);
+		pieceThere1[3] = piece;		
+	}
+	if(server2 != 0){
+		send(server2, "1", 1, 0);
+		send(server2, &filename_length, 4, 0);
+		send(server2, filename, filename_length, 0);
+		recv(server2, &piece, 4, 0);
+		pieceThere2[0] = piece;
+		recv(server2, &piece, 4, 0);
+		pieceThere2[1] = piece;
+		recv(server2, &piece, 4, 0);
+		pieceThere2[2] = piece;
+		recv(server2, &piece, 4, 0);
+		pieceThere2[3] = piece;		
+	}
+	if(server3 != 0){
+		send(server3, "1", 1, 0);
+		send(server3, &filename_length, 4, 0);
+		send(server3, filename, filename_length, 0);
+		recv(server3, &piece, 4, 0);
+		pieceThere3[0] = piece;
+		recv(server3, &piece, 4, 0);
+		pieceThere3[1] = piece;
+		recv(server3, &piece, 4, 0);
+		pieceThere3[2] = piece;
+		recv(server3, &piece, 4, 0);
+		pieceThere3[3] = piece;	
+	}
+	if(server4 != 0){
+		send(server4, "1", 1, 0);
+		send(server4, &filename_length, 4, 0);
+		send(server4, filename, filename_length, 0);
+		recv(server4, &piece, 4, 0);
+		pieceThere4[0] = piece;
+		recv(server4, &piece, 4, 0);
+		pieceThere4[1] = piece;
+		recv(server4, &piece, 4, 0);
+		pieceThere4[2] = piece;
+		recv(server4, &piece, 4, 0);
+		pieceThere4[3] = piece;
+	}
 
 	file_piece_locations locations = mapFilePieceToServer(pieceThere1, pieceThere2, pieceThere3, pieceThere4);
 
@@ -273,55 +282,70 @@ void retrieveFileFromServers(char *filename){
 	}
 	else{
 		printf("%s is incomplete\n", filename);
-		send(server1, 0, 4, 0);
-		send(server2, 0, 4, 0);
-		send(server3, 0, 4, 0);
-		send(server4, 0, 4, 0);
+		if(server1 != 0) send(server1, 0, 4, 0);
+		if(server2 != 0) send(server2, 0, 4, 0);
+		if(server3 != 0) send(server3, 0, 4, 0);
+		if(server4 != 0) send(server4, 0, 4, 0);
 	}
 }
 
 
 void splitFileOntoServers(int key, char *filename){
-	int fd;
-	int bytes_read;
-	int file_size;
-	if((fd=open(filename, O_RDONLY))!=-1){
+	FILE *f = fopen(filename, "rb");
+	fseek(f, 0, SEEK_END);
+	long fsize = ftell(f);
+	fseek(f, 0, SEEK_SET);
 
-    	int file_size = lseek(fd, 0, SEEK_END);
-    	lseek(fd, 0, SEEK_SET);
+	char *string = malloc(fsize + 1);
+	fread(string, fsize, 1, f);
+	fclose(f);
 
-		int file_size_piece = file_size / 4;
-		char p1_buffer[file_size_piece];
-		char p2_buffer[file_size_piece];
-		char p3_buffer[file_size_piece];
-		int difference = file_size - 3*(file_size_piece);
-		char p4_buffer[difference];
-		int size_p1_buffer = read(fd, p1_buffer, file_size_piece);
-		int size_p2_buffer = read(fd, p2_buffer, file_size_piece);
-		int size_p3_buffer = read(fd, p3_buffer, file_size_piece);
-		int size_p4_buffer = read(fd, p4_buffer, difference);
+   	int file_size_piece = fsize / 4;
+    int difference = fsize - (3 * file_size_piece);
+	char *p1_buffer = malloc(file_size_piece + 1);
+	char *p2_buffer = malloc(file_size_piece + 1);
+	char *p3_buffer = malloc(file_size_piece + 1);
+	char *p4_buffer = malloc(difference + 1);
 
-		int filename_length = strlen(filename);
+    strncpy(p1_buffer, string, file_size_piece);
+    strncpy(p2_buffer, string + file_size_piece, file_size_piece);
+    strncpy(p3_buffer, string + (2 * file_size_piece), file_size_piece);
+    strncpy(p4_buffer, string + (3 * file_size_piece), difference);
+    p1_buffer[file_size_piece] = '\0';
+    p2_buffer[file_size_piece] = '\0';
+    p3_buffer[file_size_piece] = '\0';
+    p4_buffer[difference] = '\0';
 
-		//printf("sending first header\n");
+    int size_p1_buffer = strlen(p1_buffer);
+    int size_p2_buffer = strlen(p2_buffer);
+    int size_p3_buffer = strlen(p3_buffer);
+    int size_p4_buffer = strlen(p4_buffer);
+
+	int filename_length = strlen(filename);
+
+	if(server1 != 0){
 		send(server1, "0", 1, 0);
-		send(server2, "0", 1, 0);
-		send(server3, "0", 1, 0);
-		send(server4, "0", 1, 0);
-
-		//printf("sending file length\n");
 		send(server1, &filename_length, sizeof(filename_length), 0);
-		send(server2, &filename_length, sizeof(filename_length), 0);
-		send(server3, &filename_length, sizeof(filename_length), 0);
-		send(server4, &filename_length, sizeof(filename_length), 0);
-
-		//printf("sending filename\n");
 		send(server1, filename, filename_length, 0);
+	}
+	if(server2 != 0){
+		send(server2, "0", 1, 0);
+		send(server2, &filename_length, sizeof(filename_length), 0);
 		send(server2, filename, filename_length, 0);
+	}
+	if(server3 != 0){
+		send(server3, "0", 1, 0);
+		send(server3, &filename_length, sizeof(filename_length), 0);
 		send(server3, filename, filename_length, 0);
-		send(server4, filename, filename_length, 0);					
+	}
+	if(server4 != 0){
+		send(server4, "0", 1, 0);
+		send(server4, &filename_length, sizeof(filename_length), 0);
+		send(server4, filename, filename_length, 0);	
+	}				
 
-		if(key == 0){
+	if(key == 0){
+		if(server1 != 0){
 			//send pieces 1 and 2 to server 1
 			send(server1, "1", 1, 0);
 			send(server1, "2", 1, 0);
@@ -329,7 +353,8 @@ void splitFileOntoServers(int key, char *filename){
 			send(server1, &size_p2_buffer, 4, 0);
 			send(server1, p1_buffer, size_p1_buffer, 0);
 			send(server1, p2_buffer, size_p2_buffer, 0);
-
+		}
+		if(server2 != 0){
 			//send pieces 2 and 3 to server 2
 			send(server2, "2", 1, 0);
 			send(server2, "3", 1, 0);	
@@ -337,7 +362,8 @@ void splitFileOntoServers(int key, char *filename){
 			send(server2, &size_p3_buffer, 4, 0);					
 			send(server2, p2_buffer, size_p2_buffer, 0);
 			send(server2, p3_buffer, size_p3_buffer, 0);
-
+		}
+		if(server3 != 0){
 			//send pieces 3 and 4 to server 3
 			send(server3, "3", 1, 0);
 			send(server3, "4", 1, 0);
@@ -345,17 +371,20 @@ void splitFileOntoServers(int key, char *filename){
 			send(server3, &size_p4_buffer, 4, 0);						
 			send(server3, p3_buffer, size_p3_buffer, 0);
 			send(server3, p4_buffer, size_p4_buffer, 0);
-
+		}
+		if(server4 != 0){
 			//send pieces 4 and 1 to server 4
 			send(server4, "4", 4, 0);
 			send(server4, "1", 4, 0);
 			send(server4, &size_p4_buffer, 4, 0);
 			send(server4, &size_p1_buffer, 4, 0);							
 			send(server4, p4_buffer, size_p4_buffer, 0);
-			send(server4, p1_buffer, size_p1_buffer, 0);									
-		}						
+			send(server4, p1_buffer, size_p1_buffer, 0);
+		}									
+	}						
 
-		else if(key == 1){
+	else if(key == 1){
+		if(server1 != 0){
 			//send pieces 4 and 1 to server 1
 			send(server1, "4", 1, 0);
 			send(server1, "1", 1, 0);
@@ -363,7 +392,8 @@ void splitFileOntoServers(int key, char *filename){
 			send(server1, &size_p1_buffer, 4, 0);							
 			send(server1, p4_buffer, size_p4_buffer, 0);
 			send(server1, p1_buffer, size_p1_buffer, 0);	
-
+		}
+		if(server2 != 0){
 			//send pieces 1 and 2 to server 2
 			send(server2, "1", 1, 0);
 			send(server2, "2", 1, 0);
@@ -371,7 +401,8 @@ void splitFileOntoServers(int key, char *filename){
 			send(server2, &size_p2_buffer, 4, 0);							
 			send(server2, p1_buffer, size_p1_buffer, 0);
 			send(server2, p2_buffer, size_p2_buffer, 0);
-			
+		}
+		if(server3 != 0){	
 			//send pieces 2 and 3 to server 3
 			send(server3, "2", 1, 0);
 			send(server3, "3", 1, 0);
@@ -379,7 +410,8 @@ void splitFileOntoServers(int key, char *filename){
 			send(server3, &size_p3_buffer, 4, 0);							
 			send(server3, p2_buffer, size_p2_buffer, 0);
 			send(server3, p3_buffer, size_p3_buffer, 0);
-			
+		}
+		if(server4 != 0){	
 			//send pieces 3 and 4 to server 4
 			send(server4, "3", 1, 0);
 			send(server4, "4", 1, 0);
@@ -387,9 +419,11 @@ void splitFileOntoServers(int key, char *filename){
 			send(server4, &size_p4_buffer, 4, 0);							
 			send(server4, p3_buffer, size_p3_buffer, 0);
 			send(server4, p4_buffer, size_p4_buffer, 0);
-		}	
+		}
+	}	
 
-		else if(key == 2){
+	else if(key == 2){
+		if(server1 != 0){
 			//send pieces 3 and 4 to server 1
 			send(server1, "3", 1, 0);
 			send(server1, "4", 1, 0);
@@ -397,7 +431,8 @@ void splitFileOntoServers(int key, char *filename){
 			send(server1, &size_p4_buffer, 4, 0);							
 			send(server1, p3_buffer, size_p3_buffer, 0);
 			send(server1, p4_buffer, size_p4_buffer, 0);
-
+		}
+		if(server2 != 0){
 			//send pieces 4 and 1 to server 2
 			send(server2, "4", 1, 0);
 			send(server2, "1", 1, 0);
@@ -405,7 +440,8 @@ void splitFileOntoServers(int key, char *filename){
 			send(server2, &size_p1_buffer, 4, 0);							
 			send(server2, p4_buffer, size_p4_buffer, 0);
 			send(server2, p1_buffer, size_p1_buffer, 0);
-
+		}
+		if(server3 != 0){
 			//send pieces 1 and 2 to server 3
 			send(server3, "1", 1, 0);
 			send(server3, "2", 1, 0);
@@ -413,33 +449,38 @@ void splitFileOntoServers(int key, char *filename){
 			send(server3, &size_p2_buffer, 4, 0);							
 			send(server3, p1_buffer, size_p1_buffer, 0);
 			send(server3, p2_buffer, size_p2_buffer, 0);
-
+		}
+		if(server4 != 0){
 			//send pieces 2 and 3 to server 4
 			send(server4, "2", 1, 0);
 			send(server4, "3", 1, 0);
 			send(server4, &size_p2_buffer, 4, 0);
 			send(server4, &size_p3_buffer, 4, 0);							
 			send(server4, p2_buffer, size_p2_buffer, 0);
-			send(server4, p3_buffer, size_p3_buffer, 0);										
-		}	
+			send(server4, p3_buffer, size_p3_buffer, 0);	
+		}									
+	}	
 
-		else{ //key == 3
+	else{ //key == 3
+		if(server1 != 0){
 			//send pieces 2 and 3 to server 1
 			send(server1, "2", 1, 0);
 			send(server1, "3", 1, 0);
 			send(server1, &size_p2_buffer, 4, 0);
 			send(server1, &size_p3_buffer, 4, 0);							
 			send(server1, p2_buffer, size_p2_buffer, 0);
-			send(server1, p3_buffer, size_p3_buffer, 0);
-
+			send(server1, p3_buffer, size_p3_buffer, 0);				
+		}
+		if(server2 != 0){
 			//send pieces 3 and 4 to server 2
 			send(server2, "3", 1, 0);
 			send(server2, "4", 1, 0);
 			send(server2, &size_p3_buffer, 4, 0);
 			send(server2, &size_p4_buffer, 4, 0);							
 			send(server2, p3_buffer, size_p3_buffer, 0);
-			send(server2, p4_buffer, size_p4_buffer, 0);	
-
+			send(server2, p4_buffer, size_p4_buffer, 0);
+		}	
+		if(server3 != 0){
 			//send pieces 4 and 1 to server 3
 			send(server3, "4", 1, 0);
 			send(server3, "1", 1, 0);
@@ -447,16 +488,18 @@ void splitFileOntoServers(int key, char *filename){
 			send(server3, &size_p1_buffer, 4, 0);							
 			send(server3, p4_buffer, size_p4_buffer, 0);
 			send(server3, p1_buffer, size_p1_buffer, 0);
-
+		}
+		if(server4 != 0){
 			//send pieces 1 and 2 to server 4
 			send(server4, "1", 1, 0);
 			send(server4, "2", 1, 0);
 			send(server4, &size_p1_buffer, 4, 0);
 			send(server4, &size_p2_buffer, 4, 0);							
 			send(server4, p1_buffer, size_p1_buffer, 0);
-			send(server4, p2_buffer, size_p2_buffer, 0);												
-		}	
-	}
+			send(server4, p2_buffer, size_p2_buffer, 0);		
+		}										
+	}	
+
 }
 
 int keyValueFromHash(char *hash){
