@@ -17,8 +17,7 @@ Username: my_username
 Password: my_password
 
 
-When using GET, PUT, and LIST make sure the command is capitalized.  As of now
-LIST has not be implemented.
+When using GET, PUT, and LIST make sure the command is capitalized.
 
 
 Compiling and Running the servers
