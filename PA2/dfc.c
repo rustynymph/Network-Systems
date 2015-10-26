@@ -568,8 +568,234 @@ void getFile(char *filename){
 	retrieveFileFromServers(filename);
 }
 
+typedef struct{
+	char *filename;
+	int available_pieces[4];
+} file_list_info;
+
 void listFiles(){
-	printf("LIST command has not been implemented\n");
+	int file_count1, file_count2, file_count3, file_count4;
+	file_count1 = file_count2 = file_count3 = file_count4 = 0;
+	file_list_info files[100];
+	int test = 0;
+	for (test; test < 100; test++){
+		files[test].available_pieces[0] = 0;
+		files[test].available_pieces[1] = 0;
+		files[test].available_pieces[2] = 0;
+		files[test].available_pieces[3] = 0;
+		files[test].filename = (char *) malloc(50);
+	}
+	int numfiles = 0;
+
+	if(server1 != 0){
+		send(server1, "2", 1, 0);
+		recv(server1, &file_count1, 4, 0);
+	}
+	if(server2 != 0){
+		send(server2, "2", 1, 0);
+		recv(server2, &file_count2, 4, 0);
+	}
+	if(server3 != 0){
+		send(server3, "2", 1, 0);
+		recv(server3, &file_count3, 4, 0);
+	}
+	if(server4 != 0){
+		send(server4, "2", 1, 0);
+		recv(server4, &file_count4, 4, 0);
+	}
+
+	if((server1 != 0) && (file_count1 > 0)){
+		int i = 0;
+		int filename_len1 = 0;
+		char *filename1[file_count1];
+		int filecounter = 0;
+		for (i; i < file_count1; i++){
+			recv(server1, &filename_len1, 4, 0);
+			filename1[filecounter] = malloc(filename_len1);
+			recv(server1, filename1[filecounter], filename_len1, 0);
+			filename1[filecounter][filename_len1] = '\0';
+			filecounter++;
+		}
+		int j = 0;
+		
+		file_list_info info1;
+		info1.filename = (char *) malloc(50);
+		int filenum;
+		for (j; j < file_count1; j++){
+
+			strcpy(info1.filename, filename1[j]);
+			info1.filename[strlen(filename1[j]) - 2] = '\0';
+			filenum = filename1[j][strlen(filename1[j]) - 1] - '0';
+			info1.available_pieces[filenum - 1] = 1;
+
+
+			printf("%s\n", info1.filename);
+			printf("%d\n", filenum);
+
+			int found_it = 0;
+			int k = 0;
+			for(k; k < 100; k++){
+				if(strcmp(files[k].filename, info1.filename) == 0){
+					files[k].available_pieces[filenum - 1] = 1;
+					found_it = 1;
+				}
+			}
+			
+			if (found_it == 0){
+					strcpy(files[numfiles].filename,  info1.filename);
+					files[numfiles].available_pieces[0] = info1.available_pieces[0];
+					files[numfiles].available_pieces[1] = info1.available_pieces[1];
+					files[numfiles].available_pieces[2] = info1.available_pieces[2];
+					files[numfiles].available_pieces[3] = info1.available_pieces[3];
+					numfiles++;
+			}
+		}
+	}
+	
+	if((server2 != 0) && (file_count2 > 0)){
+		int i = 0;
+		int filename_len2 = 0;
+		char *filename2[file_count2];
+		int filecounter = 0;
+		for (i; i < file_count2; i++){
+			recv(server2, &filename_len2, 4, 0);
+			filename2[filecounter] = malloc(filename_len2);
+			recv(server2, filename2[filecounter], filename_len2, 0);
+			filename2[filecounter][filename_len2] = '\0';
+			filecounter++;
+		}
+		int j = 0;
+		
+		file_list_info info2;
+		info2.filename = (char *) malloc(50);
+		int filenum;
+		for (j; j < file_count2; j++){
+
+			strcpy(info2.filename, filename2[j]);
+			info2.filename[strlen(filename2[j]) - 2] = '\0';
+			filenum = filename2[j][strlen(filename2[j]) - 1] - '0';
+			info2.available_pieces[filenum - 1] = 1;
+
+
+			printf("%s\n", info2.filename);
+			printf("%d\n", filenum);
+
+			int found_it = 0;
+			int k = 0;
+			for(k; k < 100; k++){
+				if(strcmp(files[k].filename, info2.filename) == 0){
+					files[k].available_pieces[filenum - 1] = 1;
+					found_it = 1;
+				}
+			}
+			
+			if (found_it == 0){
+					strcpy(files[numfiles].filename,  info2.filename);
+					files[numfiles].available_pieces[0] = info2.available_pieces[0];
+					files[numfiles].available_pieces[1] = info2.available_pieces[1];
+					files[numfiles].available_pieces[2] = info2.available_pieces[2];
+					files[numfiles].available_pieces[3] = info2.available_pieces[3];
+					numfiles++;
+			}
+		}		
+	}
+
+	if((server3 != 0) && (file_count3 > 0)){
+		int i = 0;
+		int filename_len3 = 0;
+		char *filename3[file_count3];
+		int filecounter = 0;
+		for (i; i < file_count3; i++){
+			recv(server3, &filename_len3, 4, 0);
+			filename3[filecounter] = malloc(filename_len3);
+			recv(server3, filename3[filecounter], filename_len3, 0);
+			filename3[filecounter][filename_len3] = '\0';
+			filecounter++;
+		}
+		int j = 0;
+		
+		file_list_info info3;
+		info3.filename = (char *) malloc(50);
+		int filenum;
+		for (j; j < file_count3; j++){
+
+			strcpy(info3.filename, filename3[j]);
+			info3.filename[strlen(filename3[j]) - 2] = '\0';
+			filenum = filename3[j][strlen(filename3[j]) - 1] - '0';
+			info3.available_pieces[filenum - 1] = 1;
+
+
+			printf("%s\n", info3.filename);
+			printf("%d\n", filenum);
+
+			int found_it = 0;
+			int k = 0;
+			for(k; k < 100; k++){
+				if(strcmp(files[k].filename, info3.filename) == 0){
+					files[k].available_pieces[filenum - 1] = 1;
+					found_it = 1;
+				}
+			}
+			
+			if (found_it == 0){
+					strcpy(files[numfiles].filename,  info3.filename);
+					files[numfiles].available_pieces[0] = info3.available_pieces[0];
+					files[numfiles].available_pieces[1] = info3.available_pieces[1];
+					files[numfiles].available_pieces[2] = info3.available_pieces[2];
+					files[numfiles].available_pieces[3] = info3.available_pieces[3];
+					numfiles++;
+			}
+		}
+
+	}
+	if((server4 != 0) && (file_count4 > 0)){
+		int i = 0;
+		int filename_len4 = 0;
+		char *filename4[file_count4];
+		int filecounter = 0;
+		for (i; i < file_count4; i++){
+			recv(server4, &filename_len4, 4, 0);
+			filename4[filecounter] = malloc(filename_len4);
+			recv(server4, filename4[filecounter], filename_len4, 0);
+			filename4[filecounter][filename_len4] = '\0';
+			filecounter++;
+		}
+		int j = 0;
+		
+		file_list_info info4;
+		info4.filename = (char *) malloc(50);
+		int filenum;
+		for (j; j < file_count4; j++){
+
+			strcpy(info4.filename, filename4[j]);
+			info4.filename[strlen(filename4[j]) - 2] = '\0';
+			filenum = filename4[j][strlen(filename4[j]) - 1] - '0';
+			info4.available_pieces[filenum - 1] = 1;
+
+
+			printf("%s\n", info4.filename);
+			printf("%d\n", filenum);
+
+			int found_it = 0;
+			int k = 0;
+			for(k; k < 100; k++){
+				if(strcmp(files[k].filename, info4.filename) == 0){
+					files[k].available_pieces[filenum - 1] = 1;
+					found_it = 1;
+				}
+			}
+			
+			if (found_it == 0){
+					strcpy(files[numfiles].filename,  info4.filename);
+					files[numfiles].available_pieces[0] = info4.available_pieces[0];
+					files[numfiles].available_pieces[1] = info4.available_pieces[1];
+					files[numfiles].available_pieces[2] = info4.available_pieces[2];
+					files[numfiles].available_pieces[3] = info4.available_pieces[3];
+					numfiles++;
+			}
+		}			
+	}
+
 }
 
 void dispatchCommand(char *command){

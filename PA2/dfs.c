@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <dirent.h> 
 
 #define MAX_CONNECTIONS 1000
 #define BUFFER_SIZE 1024
@@ -179,8 +180,38 @@ void handleGetRequest(int socket){
 	}				
 }
 
+
 void handleListRequest(int socket){
-	/* STUB */
+	printf("\nHandling LIST request...\n");
+	char *files_List[50];
+	int file_count = 0;
+	  DIR *d;
+	  struct dirent *dir;
+	  d = opendir(directory);
+	  if (d)
+	  {
+	    while ((dir = readdir(d)) != NULL)
+	    {
+	    	if (strcmp(dir->d_name,".") != 0 && strcmp(dir->d_name,"..") != 0){
+	    		printf("%s\n", dir->d_name);
+	    		files_List[file_count] = malloc(strlen(dir->d_name));
+	    		files_List[file_count] = dir->d_name; 
+	    		file_count++;
+	    	}
+	    }
+	    closedir(d);
+
+	    send(socket, &file_count, 4, 0);
+	    if (file_count > 0){
+	    	int i = 0;
+	    	int filename_len;
+	    	for (i; i < file_count; i++){
+	    		filename_len = strlen(files_List[i]);
+	    		send(socket, &filename_len, 4, 0);
+	    		send(socket, files_List[i], filename_len, 0);
+	    	}
+	    }
+	  }
 }
 
 void handlePutRequest(int socket){
