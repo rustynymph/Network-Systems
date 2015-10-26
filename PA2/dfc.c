@@ -629,8 +629,8 @@ void listFiles(){
 			info1.available_pieces[filenum - 1] = 1;
 
 
-			printf("%s\n", info1.filename);
-			printf("%d\n", filenum);
+			//printf("%s\n", info1.filename);
+			//printf("%d\n", filenum);
 
 			int found_it = 0;
 			int k = 0;
@@ -651,7 +651,7 @@ void listFiles(){
 			}
 		}
 	}
-	
+
 	if((server2 != 0) && (file_count2 > 0)){
 		int i = 0;
 		int filename_len2 = 0;
@@ -677,8 +677,8 @@ void listFiles(){
 			info2.available_pieces[filenum - 1] = 1;
 
 
-			printf("%s\n", info2.filename);
-			printf("%d\n", filenum);
+			//printf("%s\n", info2.filename);
+			//printf("%d\n", filenum);
 
 			int found_it = 0;
 			int k = 0;
@@ -725,8 +725,8 @@ void listFiles(){
 			info3.available_pieces[filenum - 1] = 1;
 
 
-			printf("%s\n", info3.filename);
-			printf("%d\n", filenum);
+			//printf("%s\n", info3.filename);
+			//printf("%d\n", filenum);
 
 			int found_it = 0;
 			int k = 0;
@@ -773,8 +773,8 @@ void listFiles(){
 			info4.available_pieces[filenum - 1] = 1;
 
 
-			printf("%s\n", info4.filename);
-			printf("%d\n", filenum);
+			//printf("%s\n", info4.filename);
+			//printf("%d\n", filenum);
 
 			int found_it = 0;
 			int k = 0;
@@ -794,6 +794,11 @@ void listFiles(){
 					numfiles++;
 			}
 		}			
+	}
+
+	int x = 0;
+	for (x; x < 100; x++){
+		if(strlen(files[x].filename) > 0){ printf("%s\n", files[x].filename);}
 	}
 
 }
