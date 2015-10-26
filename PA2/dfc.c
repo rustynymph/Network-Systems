@@ -796,9 +796,17 @@ void listFiles(){
 		}			
 	}
 
+	printf("\nList of files:\n");
+	printf("==============\n");
 	int x = 0;
 	for (x; x < 100; x++){
-		if(strlen(files[x].filename) > 0){ printf("%s\n", files[x].filename);}
+		if(strlen(files[x].filename) > 0){
+			printf("%s", files[x].filename);
+			if((files[x].available_pieces[0] & files[x].available_pieces[1] & files[x].available_pieces[2] & files[x].available_pieces[3]) == 1){
+				printf("      (COMPLETE)\n");
+			}
+			else{ printf("      (INCOMPLETE)\n");}
+		}
 	}
 
 }
